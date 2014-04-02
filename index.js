@@ -164,10 +164,10 @@ function request(options, callback) {
 
 var req_seq = 0
 function run_xhr(options) {
-  var xhr = new XHR
+  var xhr = options.init ? new XHR(options.init) : new XHR
     , timed_out = false
     , is_cors = is_crossDomain(options.uri)
-    , supports_cors = ('withCredentials' in xhr)
+    , supports_cors = ('withCredentials' in xhr) || (options.init && 'mozSystem' in options.init)
 
   req_seq += 1
   xhr.seq_id = req_seq
@@ -190,6 +190,12 @@ function run_xhr(options) {
     request.log.error('Timeout', { 'id':xhr._id, 'milliseconds':options.timeout })
     return options.callback(er, xhr)
   }
+
+  if (options.json)
+    xhr.responseType = 'json'
+
+  if (options.blob)
+    xhr.responseType = 'blob'
 
   // Some states can be skipped over, so remember what is still incomplete.
   var did = {'response':false, 'loading':false, 'end':false}
@@ -268,12 +274,16 @@ function run_xhr(options) {
     did.end = true
     request.log.debug('Request done', {'id':xhr.id})
 
-    xhr.body = xhr.responseText
-    if(options.json) {
-      try        { xhr.body = JSON.parse(xhr.responseText) }
-      catch (er) { return options.callback(er, xhr)        }
+    if (xhr.response)
+      xhr.body = xhr.response
+    else {
+      xhr.body = xhr.responseText
+      if(options.json) {
+        try        { xhr.body = JSON.parse(xhr.responseText) }
+        catch (er) { return options.callback(er, xhr)        }
+      }
     }
-
+    
     options.callback(null, xhr, xhr.body)
   }
 
