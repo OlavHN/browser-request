@@ -164,7 +164,7 @@ function request(options, callback) {
 
 var req_seq = 0
 function run_xhr(options) {
-  var xhr = options.init ? new XHR(options.init) : new XHR
+  var xhr = options.init ? new XMLHttpRequest(options.init) : new XMLHttpRequest()
     , timed_out = false
     , is_cors = is_crossDomain(options.uri)
     , supports_cors = ('withCredentials' in xhr) || (options.init && 'mozSystem' in options.init)
@@ -191,17 +191,17 @@ function run_xhr(options) {
     return options.callback(er, xhr)
   }
 
-  if (options.json)
-    xhr.responseType = 'json'
-
-  if (options.blob)
-    xhr.responseType = 'blob'
-
   // Some states can be skipped over, so remember what is still incomplete.
   var did = {'response':false, 'loading':false, 'end':false}
 
   xhr.onreadystatechange = on_state_change
   xhr.open(options.method, options.uri, true) // asynchronous
+  if (options.blob)
+    xhr.responseType = 'blob'
+
+  if (options.json)
+    xhr.responseType = 'json'
+
   if(is_cors)
     xhr.withCredentials = !! options.withCredentials
   xhr.send(options.body)
@@ -274,7 +274,7 @@ function run_xhr(options) {
     did.end = true
     request.log.debug('Request done', {'id':xhr.id})
 
-    if (xhr.response)
+    if (xhr.response && (options.blob || options.json))
       xhr.body = xhr.response
     else {
       xhr.body = xhr.responseText
